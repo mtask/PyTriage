@@ -58,7 +58,7 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Example script that loads a YAML config file."
+        description="PyTriage"
     )
     parser.add_argument(
         "-c", "--config",

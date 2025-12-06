@@ -19,6 +19,10 @@ modules:
       - systemctl status                 # general system status
       - aa-status                        # AppArmor status (if installed)
       - service --status-all             # SysV service status (if available)
+      # Auditd
+      - auditctl -l
+      - auditctl -s
+      - aureport -i --summary -ts recent
       # Users and login history
       - who
       - w
@@ -32,14 +36,15 @@ modules:
       - crontab -l                        # current user
       - sudo crontab -l -u root           # root crontab
       # Network and connections
-      - netstat -tulnp
-      - ss -tulnp
+      - netstat -tulnpa
+      - ss -tulnpa
       - ip addr show
       - ip route show
       - iptables-save
       - ufw status verbose
       - cat /etc/hosts
       - cat /etc/resolv.conf
+      - sshd -T
       # Package / installed software
       - dpkg -l                           # Debian/Ubuntu
       - rpm -qa                           # RHEL/CentOS
@@ -129,3 +134,13 @@ modules:
     checksums:
       # Directories are always recursive
       - /etc/
+      - /usr/bin
+      - /usr/local/bin
+      - /bin
+      - /sbin
+      - /usr/sbin
+      - /lib64
+      - /lib
+      - /usr/lib64
+      - /usr/lib
+      - /var/lib
