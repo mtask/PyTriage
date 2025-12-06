@@ -1,0 +1,5 @@
+modules:
+  pattern:
+    patterns_dir: ./patterns
+  yara:
+    rules_dir: ./yara

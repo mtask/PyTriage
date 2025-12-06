@@ -1,0 +1,6 @@
+load_sources.sh
+venv
+__pycache__
+patterns
+output
+yara

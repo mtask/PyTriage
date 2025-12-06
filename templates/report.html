@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f7f7f7;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        th {
+            background: #eee;
+        }
+        .file-entry {
+            margin-bottom: 15px;
+        }
+        .no-results {
+            color: #777;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Scan Report</h1>
+
+<!-- ======================== Pattern Matches ======================== -->
+<div class="section">
+    <h2>Pattern Matches</h2>
+
+    {% if pattern_result %}
+        {% for pattern_file, matches in pattern_result.items() %}
+            {% if matches %}
+            <div class="file-entry">
+                <h3>Pattern Source: {{ pattern_file }}</h3>
+
+                {% if matches %}
+                    {% for filepath, hit_list in matches.items() %}
+                        <strong>File:</strong> {{ filepath }}<br>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Indicator Matched</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for indicator in hit_list %}
+                                    <tr>
+                                        <td>{{ indicator }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-results">No matches found for this pattern file.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <p class="no-results">No pattern match data available.</p>
+    {% endif %}
+</div>
+
+
+<!-- ======================== YARA Results ======================== -->
+<div class="section">
+    <h2>YARA Scan Results</h2>
+
+    {% if yara_result %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Filepath</th>
+                    <th>Description</th>
+                    <th>Tags</th>
+                    <th>Strings</th>
+                    <th>Metadata</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in yara_result %}
+                    <tr>
+                        <td>{{ result.rule }}</td>
+                        <td>{{ result.filepath }}</td>
+                        <td>{{ result.meta.description }}</td>
+                        <td>
+                            {% if result.tags %}
+                                {{ result.tags | join(", ") }}
+                            {% else %}
+                                <span class="no-results">None</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ result.strings }}</td>
+                        <td>
+                            <ul>
+                                {% for key, value in result.meta.items() %}
+                                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p class="no-results">No YARA results available.</p>
+    {% endif %}
+</div>
+
+</body>
+</html>
