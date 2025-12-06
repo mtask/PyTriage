@@ -4,6 +4,7 @@ import os
 import shutil
 import logging
 import tarfile
+import glob
 from pathlib import Path
 
 def _command(cmd):
@@ -22,6 +23,7 @@ def _command(cmd):
 
 def _store_output(outdir, outfile, stdout, stderr):
     logging.info(f"Store command output: {outfile}")
+    outdir = os.path.join(outdir, 'commands')
     os.makedirs(outdir, exist_ok=True)
     if stdout:
         with open(os.path.join(outdir, f"stdout.{outfile}"), 'w+') as f:
@@ -72,12 +74,14 @@ def commands(outdir, commands):
     logging.info(f"Collecting command outputs")
     for cmd in commands:
         stdout, stderr = _command(cmd)
-        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_')}.txt", stdout, stderr)
+        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_').replace('=', '_')}.txt", stdout, stderr)
 
 def files_and_dirs(outdir, paths, compress=False):
     for p in paths:
         logging.info(f"Copying path {p}")
-        _copy_with_full_path(p, os.path.join(outdir, "files_and_dirs"))
+        expanded_paths = glob.glob(p)
+        for ep in  expanded_paths:
+            _copy_with_full_path(ep, os.path.join(outdir, "files_and_dirs"))
     logging.info("Compressing collected files and directories")
     _tar_files_and_dirs(outdir)
 
@@ -106,7 +110,7 @@ def find_luks_devices(outdir):
     for luksdev in luks_devices:
         cmd = f"cryptsetup luksDump {luksdev}"
         stdout, stderr = _command(cmd)
-        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_')}.txt", stdout, stderr)
+        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_').replace('=', '_')}.txt", stdout, stderr)
 
 def _get_md5(file_path, chunk_size=8192):
     """

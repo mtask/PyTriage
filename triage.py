@@ -50,10 +50,10 @@ def main(args):
         logging.info("Running collect module")
         import modules.mod_collect as mc
         mod_collect = config['modules']['collect']
-        #mc.commands(mod_collect['outdir'], mod_collect['commands'])
-        #mc.find_luks_devices(mod_collect['outdir'])
+        mc.commands(mod_collect['outdir'], mod_collect['commands'])
+        mc.find_luks_devices(mod_collect['outdir'])
         mc.checksums(mod_collect['outdir'], mod_collect['checksums'])
-        #mc.files_and_dirs(mod_collect['outdir'], mod_collect['files_and_dirs'])
+        mc.files_and_dirs(mod_collect['outdir'], mod_collect['files_and_dirs'])
     #report(yara_data=yara_result, pattern_data=pattern_result)
 
 def parse_args():
