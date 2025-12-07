@@ -4,3 +4,4 @@ __pycache__
 patterns
 output
 yara
+memory/lime*

@@ -1,3 +1,5 @@
+# Store results here
+outdir: /tmp/out
 modules:
   pattern:
     # Pattern txt files are here. One pattern per line
@@ -7,9 +9,29 @@ modules:
     # Yara yar files are here
     # Can contain sub directories
     rules_dir: ./yara
+  # Capture e.g. network traffic to pcap
+  capture:
+    # seconds
+    network_timeout: 60
+    # Capture network traffic
+    enable_network: true
+    # Capture volatile memory
+    enable_memory: false
+    memory:
+      capture_method: lime
+      lime:
+        path: memory/lime-6.14.0-36-generic.ko
+        # Format: lime/raw
+        format: lime
   collect:
-    # Store results here
-    outdir: /tmp/out
+    # Collect command outputs for the given commands
+    enable_commnds: true
+    # Copy files and directories from the given paths
+    enable_files_and_dirs: true
+    # Collect checksums for the given paths
+    enable_checksums: true
+    # Find luks devices and collect luksDump
+    enable_luks: true
     # Command outputs
     commands:
       - ps auxwwwef
@@ -139,8 +161,8 @@ modules:
       - /bin
       - /sbin
       - /usr/sbin
-      - /lib64
-      - /lib
-      - /usr/lib64
-      - /usr/lib
-      - /var/lib
+      #- /lib64
+      #- /lib
+      #- /usr/lib64
+      #- /usr/lib
+      #- /var/lib
