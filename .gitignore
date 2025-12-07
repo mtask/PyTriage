@@ -5,4 +5,6 @@ analyze/patterns
 analyze/yara
 analyze/report/report*
 collect/memory/lime*
-
+dist
+build
+collect.spec
