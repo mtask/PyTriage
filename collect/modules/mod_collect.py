@@ -4,6 +4,9 @@ import os
 import shutil
 import logging
 import glob
+import stat
+import pwd
+import grp
 from pathlib import Path
 
 def _command(cmd):
@@ -155,6 +158,38 @@ def checksums(outdir, paths):
     _store_checksums(outdir,'sha1.txt', sha1s)
     _store_checksums(outdir,'sha256.txt', sha256s)
 
-def selinux(outdir):
-    pass
+def file_permissions(outdir, paths):
+    outfile = os.path.join(outdir, "file_permissions.txt")
+    os.makedirs(outdir, exist_ok=True)
 
+    with open(outfile, "w") as f:
+        for fp in paths:
+            for sfp in Path(fp).rglob("*"):
+                logging.info(f"Getting file permissions for path: {sfp}")
+                try:
+                    s = os.stat(sfp)
+
+                    # Numeric permissions without "0o" prefix
+                    numeric = f"{s.st_mode & 0o777:o}"
+
+                    # Symbolic permissions
+                    symbolic = stat.filemode(s.st_mode)
+
+                    # Owner / group
+                    owner = pwd.getpwuid(s.st_uid).pw_name
+                    group = grp.getgrgid(s.st_gid).gr_name
+
+                    size = s.st_size
+                    mtime = s.st_mtime
+
+                    f.write(
+                        f"{sfp} "
+                        f"{numeric} "
+                        f"{symbolic} "
+                        f"{owner}:{group} "
+                        f"{size} "
+                        f"{mtime}\n"
+                    )
+
+                except Exception as e:
+                    f.write(f"{sfp} ERROR: {e}\n")

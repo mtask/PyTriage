@@ -9,7 +9,6 @@ modules:
     # Capture network traffic
     enable_network: true
     # Capture volatile memory
-    # Requires compiling lime kernel module and providing the path below
     enable_memory: false
     memory:
       capture_method: lime
@@ -26,6 +25,8 @@ modules:
     enable_checksums: true
     # Find luks devices and collect luksDump
     enable_luks: true
+    # Collect file permissions for the given paths
+    enable_file_permissions: true
     # Command outputs
     commands:
       - ps auxwwwef
@@ -58,8 +59,6 @@ modules:
       - ip route show
       - iptables-save
       - ufw status verbose
-      - cat /etc/hosts
-      - cat /etc/resolv.conf
       - sshd -T
       # Package / installed software
       - dpkg -l                           # Debian/Ubuntu
@@ -89,52 +88,24 @@ modules:
       - kubectl get pods --all-namespaces
     # Files and directories to collect
     files_and_dirs:
-      # System Information
-      - /etc/os-release
       - /proc/version
       - /proc/cmdline
       - /proc/modules
-      - /etc/systemd/system
       - /lib/systemd/system
-      - /etc/crontab
-      - /etc/cron.d
-      - /etc/cron.daily
-      - /etc/cron.hourly
-      - /etc/cron.weekly
-      - /etc/cron.monthly
-      - /var/log
-      # Users and Accounts
-      - /etc/passwd
-      - /etc/shadow
-      - /etc/group
-      - /etc/sudoers
-      - /etc/sudoers.d
-      - /var/log/wtmp
-      - /var/log/btmp
-      - /var/log/lastlog
       - /var/spool/cron/crontabs
-      # Network and Config
-      - /etc/hosts
-      - /etc/resolv.conf
-      - /etc/network/interfaces
-      - /etc/sysconfig/network-scripts
-      - /etc/ssh
-      - /etc/sshd
+      - /etc/
       - /root/.ssh
       - /home/*/.ssh
-      # Shell history
       - /root/.bash_history
       - /root/.zsh_history
       - /home/*/.bash_history
       - /home/*/.zsh_history
-      # Packages
       - /var/lib/dpkg/status
       - /var/lib/rpm
-      - /etc/apt
-      - /etc/yum.repos.d
+      - /var/www/
+      - /var/log/
       # Docker/Kubernetes (if present)
       #- /var/lib/docker
-      #- /etc/kubernetes
       #- /var/lib/kubelet
       # Key binaries and scripts
       #- /usr/bin
@@ -142,8 +113,6 @@ modules:
       #- /bin
       #- /sbin
       #- /usr/sbin
-      - /etc/init.d
-      - /etc/rc.local
       # Temp files (possible malware drops)
       #- /tmp
       #- /var/tmp
@@ -160,3 +129,5 @@ modules:
       #- /usr/lib64
       #- /usr/lib
       #- /var/lib
+    file_permissions:
+      - /etc/

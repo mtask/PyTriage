@@ -45,6 +45,8 @@ def main(args):
         logging.info("Running collect module")
         import modules.mod_collect as mc
         mod_collect = config['modules']['collect']
+        if mod_collect['enable_file_permissions']:
+            mc.file_permissions(outdir, mod_collect['file_permissions'])
         if mod_collect['enable_commnds']:
             mc.commands(outdir, mod_collect['commands'])
         if mod_collect['enable_luks']:

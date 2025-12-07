@@ -1,4 +1,4 @@
-from scapy.all import sniff, AsyncSniffer, PcapWriter
+from scapy.all import sniff, AsyncSniffer, PcapWriter,PcapReader
 import os
 import logging
 import time
@@ -13,12 +13,24 @@ from datetime import datetime, timezone
 # Network capture
 # ------------------------
 
+def _pcap_to_text(pcap):
+    """
+    Write captured pcap content text file for easy text based IP pattern matching etc.
+    """
+    out = f"{pcap}.txt"
+    logging.info(f"[+] Writing capture content to text file: {out}")
+
+    with PcapReader(pcap) as reader, open(out, "w") as f:
+        for i, pkt in enumerate(reader, start=1):
+            try:
+                f.write(f"{i}: {pkt.summary()}\n")
+            except Exception as e:
+                f.write(f"{i}: <Failed to parse packet: {e}>\n")
+
 def network_interfaces(outdir, timeout, ifaces):
     outdir = os.path.join(outdir, "capture")
     os.makedirs(outdir, exist_ok=True)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    outfile = os.path.join(outdir, f"{timestamp}.pcap")
+    outfile = os.path.join(outdir, f"{'_'.join(ifaces)}.pcap")
 
     logging.info(f"[+] Starting packet capture for {str(timeout)} seconds → {outfile}")
     logging.info(f"[+] Stop early with Ctrl+c. Collect script will continue with next tasks.")
@@ -45,8 +57,7 @@ def network_interfaces(outdir, timeout, ifaces):
         writer.flush()
         writer.close()
         logging.info("[+] Capture complete.")
-
-    return outfile
+        _pcap_to_text(outfile)
 
 
 # ------------------------

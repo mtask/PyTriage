@@ -1,3 +1,4 @@
+import logging
 import socket
 import tarfile
 import os
@@ -18,3 +19,4 @@ def compress(outdir, target_dir_name):
 
     # Remove the original directory
     shutil.rmtree(src_path)
+    logging.info(f"Collection finished: {tar_path}")
