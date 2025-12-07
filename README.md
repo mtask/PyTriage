@@ -89,7 +89,7 @@ python analyze.py --config config.yaml --collection-path /tmp/out/<collection>.t
 Check `analyze/config.yaml`.
 
 **Options:**
-- `--collection-path`: Path to the collected data directory. (required)
+- `--collection-path`: Path to the collected tar.gz. (required)
 - `--pattern`: Enable IoC pattern matching. (optional)
 - `--yara`: Enable YARA scanning. (optional)
 - `--analysis`: Enable other analysis modules against `files_and_dirs` content in the collection. (optional)
