@@ -9,7 +9,6 @@ modules:
     # Capture network traffic
     enable_network: true
     # Capture volatile memory
-    # Requires compiling lime kernel module and providing the path below
     enable_memory: false
     memory:
       capture_method: lime

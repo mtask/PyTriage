@@ -3,7 +3,6 @@ import hashlib
 import os
 import shutil
 import logging
-import tarfile
 import glob
 from pathlib import Path
 
@@ -54,36 +53,18 @@ def _copy_with_full_path(src_path, outdir):
     else:
         logging.warning(f"Source path does not exist: {src_path}")
 
-def _tar_files_and_dirs(outdir, target_dir_name="files_and_dirs"):
-    src_path = os.path.join(outdir, target_dir_name)
-    if not os.path.exists(src_path):
-        raise FileNotFoundError(f"Source directory does not exist: {src_path}")
-
-    tar_path = os.path.join(outdir, f"{target_dir_name}.tar.gz")
-
-    # Create tar.gz archive
-    with tarfile.open(tar_path, "w:gz") as tar:
-        # Add the directory, keeping its name inside the archive
-        tar.add(src_path, arcname=target_dir_name)
-
-    # Remove the original directory
-    shutil.rmtree(src_path)
-
-
 def commands(outdir, commands):
     logging.info(f"Collecting command outputs")
     for cmd in commands:
         stdout, stderr = _command(cmd)
         _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_').replace('=', '_')}.txt", stdout, stderr)
 
-def files_and_dirs(outdir, paths, compress=False):
+def files_and_dirs(outdir, paths):
     for p in paths:
         logging.info(f"Copying path {p}")
         expanded_paths = glob.glob(p)
         for ep in  expanded_paths:
             _copy_with_full_path(ep, os.path.join(outdir, "files_and_dirs"))
-    logging.info("Compressing collected files and directories")
-    _tar_files_and_dirs(outdir)
 
 def find_luks_devices(outdir):
     """

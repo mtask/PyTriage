@@ -4,7 +4,6 @@ import json
 import os
 import sys
 import logging
-from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 
 logging.basicConfig(
@@ -19,6 +18,9 @@ def load_config(path):
     return data
 
 def validate_config(args, config):
+    if not args.capture and not args.collect:
+        print("No --collect or --capture specified. Nothing to do.")
+        sys.exit(0)
     if args.capture and not args.interfaces and config['modules']['capture']['enable_network']:
         print("-if / --interfaces is required when using --capture and network capturing is enabled in configuration")
         sys.exit(1)
@@ -26,7 +28,8 @@ def validate_config(args, config):
 def main(args):
     config = load_config(args.config)
     validate_config(args, config)
-    outdir = os.path.join(config['outdir'], datetime.now().strftime("%Y%m%d_%H%M%S"))
+    dir_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
+    outdir = os.path.join(config['outdir'], dir_timestamp)
     os.makedirs(outdir, exist_ok=True)
     pattern_result = []
     yara_result = []
@@ -50,7 +53,10 @@ def main(args):
             mc.checksums(outdir, mod_collect['checksums'])
         if mod_collect['enable_files_and_dirs']:
             mc.files_and_dirs(outdir, mod_collect['files_and_dirs'])
-    report(outdir, yara_data=yara_result, pattern_data=pattern_result)
+    if config['compress_collection']:
+        import lib.collection as lc
+        logging.info("Compressing collection")
+        lc.compress(config['outdir'], dir_timestamp)
 
 def parse_args():
     parser = argparse.ArgumentParser(

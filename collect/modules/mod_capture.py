@@ -1,7 +1,6 @@
-from scapy.all import sniff, PcapWriter
+from scapy.all import sniff, AsyncSniffer, PcapWriter
 import os
 import logging
-import socket
 import time
 import sys
 import subprocess
@@ -13,30 +12,36 @@ from datetime import datetime, timezone
 # ------------------------
 # Network capture
 # ------------------------
+
 def network_interfaces(outdir, timeout, ifaces):
     outdir = os.path.join(outdir, "capture")
     os.makedirs(outdir, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    hostname = socket.gethostname()
-    outfile = os.path.join(outdir, f"{timestamp}_{hostname}.pcap")
+    outfile = os.path.join(outdir, f"{timestamp}.pcap")
 
-    logging.info(f"[+] Starting packet capture → {outfile}")
+    logging.info(f"[+] Starting packet capture for {str(timeout)} seconds → {outfile}")
+    logging.info(f"[+] Stop early with Ctrl+c. Collect script will continue with next tasks.")
 
     writer = PcapWriter(outfile, append=False, sync=True)
-    end_time = time.time() + timeout
 
     def handle_packet(pkt):
         writer.write(pkt)
 
+    sniffer = AsyncSniffer(
+        iface=ifaces,
+        prn=handle_packet,
+        store=False
+    )
+
     try:
-        while time.time() < end_time:
-            sniff(iface=ifaces, timeout=1, prn=handle_packet, store=False)
+        sniffer.start()              # Capture starts instantly
+        sniffer.join(timeout)        # Wait for timeout OR Ctrl+C
 
     except KeyboardInterrupt:
-        logging.info("[!] Ctrl+C detected — stopping capture early")
-
+        logging.info("[!] Ctrl+C pressed — stopping capture")
     finally:
+        sniffer.stop()               # Guaranteed to kill sniffer thread
         writer.flush()
         writer.close()
         logging.info("[+] Capture complete.")

@@ -1,5 +1,5 @@
 analyze/load_sources.sh
-venv
+*venv
 __pycache__
 analyze/patterns
 analyze/yara
