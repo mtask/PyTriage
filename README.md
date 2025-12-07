@@ -72,6 +72,8 @@ Check `collect/config.yaml`.
 └── files_and_dirs/
 ```
 
+**Remote collection:** See [ansible-collect](https://github.com/mtask/PyTriage/tree/main/ansible_collect).
+
 ---
 
 ### Analyze Mode
