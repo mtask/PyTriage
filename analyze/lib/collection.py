@@ -2,20 +2,23 @@ import logging
 import os
 import tarfile
 
-def decompress(src_tar):
+def decompress(src_path):
     """
     Decompress a .tar.gz file into a directory next to it.
     Returns path to the extracted directory.
+    If path is already extracted collection path return src_path
     """
 
-    if not os.path.isfile(src_tar):
-        raise FileNotFoundError(f"Tar archive not found: {src_tar}")
+    if os.path.isdir(src_path) and os.path.isdir(os.path.join(src_path, "files_and_dirs")):
+        return src_path
+    if not os.path.isfile(src_path):
+        raise FileNotFoundError(f"Tar archive not found: {src_path}")
 
     # Directory where the tar.gz is located
-    base_dir = os.path.dirname(os.path.abspath(src_tar))
+    base_dir = os.path.dirname(os.path.abspath(src_path))
 
     # Directory name = tar filename without .tar.gz
-    filename = os.path.basename(src_tar)
+    filename = os.path.basename(src_path)
     if filename.endswith(".tar.gz"):
         out_dir = os.path.join(base_dir, filename[:-7])
     else:
@@ -40,7 +43,7 @@ def decompress(src_tar):
                 raise Exception(f"Blocked unsafe path in tar: {member.name}")
         tar.extractall(path)
 
-    with tarfile.open(src_tar, "r:gz") as tar:
+    with tarfile.open(src_path, "r:gz") as tar:
         safe_extract(tar, out_dir)
 
     logging.info(f"Tar decompressed to: {out_dir}")

@@ -1,75 +1,166 @@
+# modules/mod_yara.py
 import os
-from pathlib import Path
+import re
 import yara
 import magic
 import hashlib
 import pwd
+import logging
+from pathlib import Path
+
+
+# ===============================================================
+# Helpers
+# ===============================================================
 
 def _get_file_owner(fp):
-    st = os.stat(fp)
-    uid = st.st_uid
-    return pwd.getpwuid(uid).pw_name
+    try:
+        st = os.stat(fp)
+        return pwd.getpwuid(st.st_uid).pw_name
+    except Exception:
+        return ""
+
 
 def _detect_file_signature(fp, num_bytes=16):
-    # Read first N bytes and convert to hex
     try:
         with open(fp, "rb") as f:
             header = f.read(num_bytes)
         hex_sig = " ".join(f"{b:02X}" for b in header)
 
-        # Use python-magic to get the file type description
         filetype = magic.from_file(fp)
 
-        # Return in the desired format
         return f"{hex_sig};{filetype}"
-    except PermissionError as e:
+    except Exception:
         return ""
 
 
-def _get_file_data(fpath):
+def _get_file_data(fp):
     d = {}
-    d['filename'] = os.path.basename(fpath)
-    d['filepath'] = fpath
-    d['extension'] = os.path.splitext(fpath)[1]
-    d['filetype'] = _detect_file_signature(fpath)
+    d["filename"] = os.path.basename(fp)
+    d["filepath"] = fp
+    d["extension"] = os.path.splitext(fp)[1]
+    d["filetype"] = _detect_file_signature(fp)
+
     try:
-        with open(fpath, 'rb') as f:
-            d['md5'] = hashlib.md5(f.read()).hexdigest()
-    except PermissionError as e:
-        d['md5'] = ''
-    d['owner'] = _get_file_owner(fpath)
+        with open(fp, "rb") as f:
+            d["md5"] = hashlib.md5(f.read()).hexdigest()
+    except Exception:
+        d["md5"] = ""
+
+    d["owner"] = _get_file_owner(fp)
     return d
 
+
+# ===============================================================
+# YARA Rule Processing
+# ===============================================================
+
+# Detect which externals a YARA rule references
+EXT_PATTERN = re.compile(
+    r'\b(filename|filepath|extension|filetype|md5|owner)\b'
+)
+
+def _detect_externals_in_string(rule_text):
+    return set(m.group(1) for m in EXT_PATTERN.finditer(rule_text))
+
+
+def _compile_rule_set(rule_files):
+    """
+    Auto-detect externals and compile all rules as a single YARA database.
+    """
+    filepaths_map = {}
+    externals_needed = set()
+
+    for i, rf in enumerate(rule_files):
+        filepaths_map[f"rule_{i}"] = rf
+
+        try:
+            txt = Path(rf).read_text(errors="ignore")
+        except Exception:
+            txt = ""
+
+        externals_needed.update(_detect_externals_in_string(txt))
+
+    # Provide dummy externals that will be overridden per-file
+    externals_dict = {ext: "" for ext in externals_needed}
+    logging.info("[+] Compiling rules")
+    rules = yara.compile(
+        filepaths=filepaths_map,
+        externals=externals_dict
+    )
+
+    logging.info("[+] Rule compiling ready")
+    return rules, externals_needed
+
+
+# ===============================================================
+# Scan Execution
+# ===============================================================
+
+def _run_yara(rules, file_list, externals_needed):
+    all_matches = []
+
+    for filepath, externals in file_list:
+        # Populate EXTERNAL variables dynamically
+        active_externals = {
+            key: externals.get(key, "")
+            for key in externals_needed
+        }
+
+        try:
+            matches = rules.match(filepath, externals=active_externals)
+        except yara.Error:
+            continue
+
+        for m in matches:
+            all_matches.append({
+                "rule":      m.rule,
+                "namespace": m.namespace,
+                "tags":      m.tags,
+                "meta":      dict(m.meta),
+                "strings":   str(m.strings),
+                "filepath":  filepath
+            })
+
+    return all_matches
+
+
+# ===============================================================
+# PUBLIC ENTRYPOINT
+# ===============================================================
+
 def search(rules_dir, target_path):
+    """
+    Main scanning interface.
+    - Recursively collects files
+    - Preloads metadata
+    - Compiles YARA rule set
+    - Runs match evaluation
+    """
+
+    # Collect files
     file_list = []
-    matches = []
+
     if os.path.isfile(target_path):
-        file_list.append(target_path)
+        externals = _get_file_data(target_path)
+        file_list.append([target_path, externals])
+
     elif os.path.isdir(target_path):
         for f in Path(target_path).rglob("*"):
             f = str(f)
             if os.path.isfile(f) and not os.path.islink(f):
                 externals = _get_file_data(f)
                 file_list.append([f, externals])
-    for r in Path(rules_dir).rglob("*.yar"):
-        rule = yara.compile(str(r), externals={ 'filename': "temp",'filepath': "temp", 'extension': "temp", 'filetype': "temp", 'md5': "temp", 'owner': "temp"})
-        matches = matches + _run_yara(rule, file_list)
-    return matches
 
-def _run_yara(rule, file_list):
-    rule_matches = []
-    for f in file_list:
-        try:
-            match = rule.match(f[0], externals=f[1])
-            for item in match:
-                match = {'rule': None, 'namespace': None, 'tags': [], 'meta': {}, 'strings': []}
-                match['rule'] = item.rule
-                match['namespace'] = item.namespace
-                match['tags'] = item.tags
-                match['meta'] = item.meta
-                match['strings'] = str(item.strings)
-                match['filepath'] = f[0]
-                rule_matches.append(match)
-        except yara.Error as e:
-            print(repr(e))
-    return rule_matches
+    # Gather YARA rule files
+    rule_files = [str(r) for r in Path(rules_dir).rglob("*.yar")]
+
+    if not rule_files:
+        return []
+
+    # Compile rule set with auto external detection
+    rules, externals_needed = _compile_rule_set(rule_files)
+
+    # Run scanning
+    return _run_yara(rules, file_list, externals_needed)
+

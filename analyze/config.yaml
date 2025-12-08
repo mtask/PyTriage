@@ -3,6 +3,9 @@ reportdir: report
 # Modules are enabled/disabled based on commandline switches. 
 # This config file only includes additional configuration.
 modules:
+  pcap:
+     # Run zeek against the pcap and output to reportdir
+    enable_zeek: true
   pattern:
     # Pattern txt files are here. One pattern per line
     # Can contain sub directories

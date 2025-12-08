@@ -40,6 +40,7 @@ def validate_config(args, config):
 def main(args):
     config = load_config(args.config)
     validate_config(args, config)
+    # Get collection path and decompress if path is tar.gz
     target_path = lc.decompress(args.collection_path)
     pattern_result = []
     yara_result = []
@@ -64,18 +65,23 @@ def main(args):
         import modules.mod_pcap as mpcap
         import modules.mod_logs as ml
         import modules.mod_file_permissions as mf
+        # Persistence
         logging.info("Running persistence module")
         persistence_result = mp.analyze(target_path)
         print(json.dumps(persistence_result, indent=2))
+        # PCAP
         logging.info("Running pcap module")
-        pcap_result = mpcap.analyze(target_path)
+        pcap_result = mpcap.analyze(target_path, config['reportdir'], config['modules']['pcap']['enable_zeek'])
         print(json.dumps(pcap_result, indent=2))
+        # Logs
         logging.info("Running logs module")
         log_result = ml.analyze(target_path)
         print(json.dumps(log_result, indent=2))
+        # File permissions
         logging.info("Running file permissions module")
         file_permission_result = mf.analyze(target_path)
         print(json.dumps(file_permission_result, indent=2))
+
     report(config['reportdir'], yara_data=yara_result, pattern_data=pattern_result, persistence_data=persistence_result, pcap_data=pcap_result, log_data=log_result, file_permission_data=file_permission_result)
 
 def parse_args():
@@ -91,7 +97,7 @@ def parse_args():
     parser.add_argument(
         "-cp", "--collection-path",
         required=True,
-        help="Path to collection tar.gz gathered by collect tool."
+        help="Path to collection tar.gz or extracted collection dir gathered by collect tool."
     )
 
     parser.add_argument(
