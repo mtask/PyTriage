@@ -5,6 +5,7 @@ import math
 import logging
 import subprocess
 from collections import defaultdict
+from contextlib import chdir
 
 # -----------------------------
 # Helpers
@@ -58,16 +59,15 @@ def _zeek(pcap_file, outdir):
 
     cmd = [
         "zeek",
-        "-r", str(pcap_file),            # read the PCAP
+        "-r", str(pcap_file),
         "-C",                            # ignore checksum errors
-        "-b",                            # bare mode
         f"LogAscii::use_json=T",         # output logs as JSON
-        "-B", str(outdir)                 # output directory
     ]
 
     try:
         logging.info(f"[+] Running Zeek: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
+        with chrdir(outdir):
+            subprocess.run(cmd, check=True)
     except FileNotFoundError as e:
         logging.error(f"Zeek not found: {repr(e)}")
     except subprocess.CalledProcessError as e:

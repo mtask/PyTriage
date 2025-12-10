@@ -1,3 +1,4 @@
+import threading
 import yaml
 import argparse
 import json
@@ -31,6 +32,7 @@ def main(args):
     dir_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
     outdir = os.path.join(config['outdir'], dir_timestamp)
     os.makedirs(outdir, exist_ok=True)
+    threads = []
     if args.capture:
         logging.info("Running capture module")
         import modules.mod_capture as mcap
@@ -38,11 +40,31 @@ def main(args):
         if mod_capture['enable_memory']:
             mcap.memory(outdir, mod_capture['memory'])
         if mod_capture['enable_network']:
-            mcap.network_interfaces(outdir, int(mod_capture['network_timeout']), args.interfaces.strip().split(','))
+            net_capture_thread = threading.Thread(
+                target=mcap.network_interfaces,
+                args=(
+                    outdir,
+                    int(mod_capture['network_timeout']),
+                    args.interfaces.strip().split(','),
+                )
+            )
+            net_capture_thread.start()
+            threads.append(net_capture_thread)
     if args.collect:
         logging.info("Running collect module")
         import modules.mod_collect as mc
         mod_collect = config['modules']['collect']
+        if mod_collect['enable_files_and_dirs']:
+            files_and_dirs_thread = threading.Thread(
+                target=mc.files_and_dirs,
+                args=(
+                    outdir,
+                    mod_collect['files_and_dirs']
+                )
+            )
+            files_and_dirs_thread.start()
+            threads.append(files_and_dirs_thread)
+            #mc.files_and_dirs(outdir, mod_collect['files_and_dirs'])
         if mod_collect['enable_file_permissions']:
             mc.file_permissions(outdir, mod_collect['file_permissions'])
         if mod_collect['enable_commnds']:
@@ -51,8 +73,9 @@ def main(args):
             mc.find_luks_devices(outdir)
         if mod_collect['enable_checksums']:
             mc.checksums(outdir, mod_collect['checksums'])
-        if mod_collect['enable_files_and_dirs']:
-            mc.files_and_dirs(outdir, mod_collect['files_and_dirs'])
+    for thread in threads:
+        logging.info("[+] Waiting jobs to finish")
+        thread.join()
     if config['compress_collection']:
         import lib.collection as lc
         logging.info("Compressing collection")
